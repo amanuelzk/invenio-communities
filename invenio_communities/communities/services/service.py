@@ -233,7 +233,9 @@ class CommunityService(RecordService):
         """Read the community's logo."""
         record = self.record_cls.pid.resolve(id_)
         self.require_permission(identity, "read", record=record)
+        print("this is your logo")
         logo_file = record.files.get("logo")
+        print(logo_file)
         if logo_file is None:
             raise FileNotFoundError()
         return self.files.file_result_item(
@@ -460,6 +462,8 @@ class CommunityService(RecordService):
     ):
         """(Soft) delete a published community."""
         record = self.record_cls.pid.resolve(id_)
+        print("this is where we delete")
+        print(data)
         # Check permissions
         self.require_permission(identity, "delete", record=record)
         self.check_revision_id(record, revision_id)

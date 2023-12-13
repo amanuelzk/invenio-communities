@@ -9,7 +9,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 
 """Components."""
-
+import random
 from flask import current_app
 from invenio_access.permissions import system_identity, system_process
 from invenio_db import db
@@ -28,8 +28,8 @@ from ...proxies import current_roles
 from ...utils import on_user_membership_change
 from ..records.systemfields.access import VisibilityEnum
 from ..records.systemfields.deletion_status import CommunityDeletionStatusEnum
-
-
+from invenio_db import db
+from invenio_accounts.models import User,Role
 class PIDComponent(ServiceComponent):
     """Service component for Community PIDs."""
 
@@ -114,11 +114,23 @@ class OwnershipComponent(ServiceComponent):
         """Make an owner member from the identity."""
         if system_process in identity.provides:
             return
+        role_id = 'reviewer'  # Replace with the actual role_id you want to filter by
+        user_id=[]
+        users_with_role = User.query.join(User.roles).filter(Role.id == role_id).all()
 
+        for user in users_with_role:
+            user_id.append(user.id)
+            print(user.id)
+        random.shuffle(user_id)
+        # id = user_id[0]
+        print(user_id)
         member = {
-            "type": "user",
-            "id": str(identity.id),
+            "type":"user",
+            "id": str(user_id[0]),
         }
+        print("this is member")
+        # print(lists)
+        print(current_roles.owner_role.name)
         self.service.members.add(
             # the user is not yet owner of the community (is being added)
             # therefore we cannot use `identity`
@@ -127,7 +139,7 @@ class OwnershipComponent(ServiceComponent):
             {"members": [member], "role": current_roles.owner_role.name},
             uow=self.uow,
         )
-
+        print(member)
         # Invalidate the membership cache
         on_user_membership_change(identity=identity)
 
