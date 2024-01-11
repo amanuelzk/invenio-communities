@@ -21,6 +21,11 @@ from invenio_communities.proxies import current_communities
 
 from ..communities.resources.ui_schema import TypesSchema
 from .decorators import pass_community
+from invenio_accounts.models import userrole
+from sqlalchemy import select
+from invenio_db import db
+from flask_login import current_user
+
 
 VISIBILITY_FIELDS = [
     {
@@ -28,14 +33,14 @@ VISIBILITY_FIELDS = [
         "value": "public",
         "icon": "group",
         "helpText": _(
-            "Your community is publicly accessible" " and shows up in search results."
+            "Your collection is publicly accessible" " and shows up in search results."
         ),
     },
     {
         "text": "Restricted",
         "value": "restricted",
         "icon": "lock",
-        "helpText": _("Your community is restricted to users" " with access."),
+        "helpText": _("Your collection is restricted to users" " with access."),
     },
 ]
 
@@ -44,14 +49,14 @@ REVIEW_POLICY_FIELDS = [
         "text": "Review all submissions",
         "value": "closed",
         "icon": "lock",
-        "helpText": _("All submissions to the community must be reviewed."),
+        "helpText": _("All submissions to the collection must be reviewed."),
     },
     {
         "text": "Allow curators, managers and owners to publish without review",
         "value": "open",
         "icon": "group",
         "helpText": _(
-            "Submissions to the community by default requires review, but curators, managers and owners can publish directly without review."
+            "Submissions to the collection by default requires review, but curators, managers and owners can publish directly without review."
         ),
     },
 ]
@@ -90,18 +95,44 @@ def _get_roles_can_invite(community_id):
 def communities_frontpage():
     """Communities index page."""
     can_create = current_communities.service.check_permission(g.identity, "create")
+
+    stmt = select([userrole.c.role_id]).where(userrole.c.user_id == current_user.id)
+    result = db.session.execute(stmt).fetchone()
+    if result:
+        current_user_role = result[0]
+        print(current_user_role == 'admin')
+        if current_user_role == 'student':
+            is_not_student = False
+        else:
+            is_not_student = True
+    else:
+        is_not_student = False
+
     return render_template(
         "invenio_communities/frontpage.html",
         permissions=dict(can_create=can_create),
+        is_not_student=is_not_student,
     )
 
 
 def communities_search():
     """Communities search page."""
     can_create = current_communities.service.check_permission(g.identity, "create")
+    stmt = select([userrole.c.role_id]).where(userrole.c.user_id == current_user.id)
+    result = db.session.execute(stmt).fetchone()
+    if result:
+        current_user_role = result[0]
+        print(current_user_role == 'admin')
+        if current_user_role == 'student':
+            is_not_student = False
+        else:
+            is_not_student = True
+    else:
+        is_not_student = False
     return render_template(
         "invenio_communities/search.html",
         permissions=dict(can_create=can_create),
+        is_not_student=is_not_student,
     )
 
 
@@ -180,9 +211,6 @@ def communities_settings(pid_value, community, community_ui):
             "search_requests",
             "search_invites",
             "manage_access",
-            "rename",
-            "delete",
-            "moderate",
         ]
     )
     if not permissions["can_update"]:
@@ -225,7 +253,7 @@ def communities_settings(pid_value, community, community_ui):
 def communities_requests(pid_value, community, community_ui):
     """Community requests page."""
     permissions = community.has_permissions_to(
-        ["update", "read", "search_requests", "search_invites", "moderate"]
+        ["update", "read", "search_requests", "search_invites"]
     )
     if not permissions["can_search_requests"]:
         raise PermissionDeniedError()
@@ -247,7 +275,6 @@ def communities_settings_privileges(pid_value, community, community_ui):
             "search_requests",
             "search_invites",
             "manage_access",
-            "moderate",
         ]
     )
 
@@ -268,7 +295,7 @@ def communities_settings_privileges(pid_value, community, community_ui):
 def communities_settings_curation_policy(pid_value, community, community_ui):
     """Community settings/curation-policy page."""
     permissions = community.has_permissions_to(
-        ["update", "read", "search_requests", "manage_access", "moderate"]
+        ["update", "read", "search_requests", "manage_access"]
     )
 
     if not permissions["can_update"]:
@@ -294,7 +321,6 @@ def communities_settings_pages(pid_value, community, community_ui):
             "search_requests",
             "search_invites",
             "manage_access",
-            "moderate",
         ]
     )
     if not permissions["can_update"]:
@@ -323,7 +349,6 @@ def members(pid_value, community, community_ui):
             "search_requests",
             "search_invites",
             "invite_owners",
-            "moderate",
         ]
     )
     if not permissions["can_read"]:
@@ -348,7 +373,6 @@ def invitations(pid_value, community, community_ui):
             "search_requests",
             "search_invites",
             "invite_owners",
-            "moderate",
         ]
     )
     if not permissions["can_search_invites"]:
@@ -369,7 +393,6 @@ def communities_about(pid_value, community, community_ui):
             "update",
             "read",
             "search_requests",
-            "moderate",
         ]
     )
     if not permissions["can_read"]:
@@ -390,7 +413,6 @@ def communities_curation_policy(pid_value, community, community_ui):
             "update",
             "read",
             "search_requests",
-            "moderate",
         ]
     )
     if not permissions["can_read"]:
