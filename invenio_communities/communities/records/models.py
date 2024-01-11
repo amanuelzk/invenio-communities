@@ -38,7 +38,9 @@ class CommunityMetadata(db.Model, RecordMetadataBase):
         nullable=False,
         default=CommunityDeletionStatusEnum.PUBLISHED.value,
     )
-
+    community_status = db.Column(db.Boolean(), nullable=False)
+    
+    
 
 class CommunityFileMetadata(db.Model, RecordMetadataBase, FileRecordModelMixin):
     """File associated with a community."""

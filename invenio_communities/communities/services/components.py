@@ -23,13 +23,14 @@ from invenio_records_resources.services.records.components import (
     ServiceComponent,
 )
 from marshmallow.exceptions import ValidationError
-
+from invenio_accounts.models import LoginInformation
 from ...proxies import current_roles
 from ...utils import on_user_membership_change
 from ..records.systemfields.access import VisibilityEnum
 from ..records.systemfields.deletion_status import CommunityDeletionStatusEnum
 from invenio_db import db
 from invenio_accounts.models import User,Role
+from invenio_communities.members.records.models import MemberModel
 class PIDComponent(ServiceComponent):
     """Service component for Community PIDs."""
 
@@ -109,7 +110,8 @@ class CommunityAccessComponent(ServiceComponent):
 
 class OwnershipComponent(ServiceComponent):
     """Service component for owner membership integration."""
-
+   
+    
     def create(self, identity, data=None, record=None, **kwargs):
         """Make an owner member from the identity."""
         if system_process in identity.provides:
@@ -117,20 +119,17 @@ class OwnershipComponent(ServiceComponent):
         role_id = 'reviewer'  # Replace with the actual role_id you want to filter by
         user_id=[]
         users_with_role = User.query.join(User.roles).filter(Role.id == role_id).all()
-
+        
         for user in users_with_role:
             user_id.append(user.id)
-            print(user.id)
+           
         random.shuffle(user_id)
-        # id = user_id[0]
-        print(user_id)
+       
         member = {
             "type":"user",
             "id": str(user_id[0]),
         }
-        print("this is member")
-        # print(lists)
-        print(current_roles.owner_role.name)
+     
         self.service.members.add(
             # the user is not yet owner of the community (is being added)
             # therefore we cannot use `identity`
@@ -139,10 +138,11 @@ class OwnershipComponent(ServiceComponent):
             {"members": [member], "role": current_roles.owner_role.name},
             uow=self.uow,
         )
-        print(member)
+       
         # Invalidate the membership cache
         on_user_membership_change(identity=identity)
-
+        
+        
 
 class FeaturedCommunityComponent(ServiceComponent):
     """Service component for featured community integration."""
