@@ -10,6 +10,10 @@
 
 """Components."""
 import random
+
+from flask_login import current_user
+
+from invenio_userprofiles import current_userprofile
 from flask import current_app
 from invenio_access.permissions import system_identity, system_process
 from invenio_db import db
@@ -111,35 +115,49 @@ class CommunityAccessComponent(ServiceComponent):
 class OwnershipComponent(ServiceComponent):
     """Service component for owner membership integration."""
    
-    
+    def userInfo(self):
+            if current_userprofile.is_authenticated:
+                user_id = current_user.get_id()
+                return user_id
+
+            else:
+                print("No user is currently logged in.")
     def create(self, identity, data=None, record=None, **kwargs):
         """Make an owner member from the identity."""
         if system_process in identity.provides:
-            return
-        role_id = 'reviewer'  # Replace with the actual role_id you want to filter by
-        user_id=[]
-        users_with_role = User.query.join(User.roles).filter(Role.id == role_id).all()
+                    return
         
+        role_id = 'reviewer'
+        user_id=[]
+        shuffeld_user = []
+        account_id= current_user.get_id()
+        converted_int = int(account_id)
+        users_with_role = User.query.join(User.roles).filter(Role.id == role_id).all()
         for user in users_with_role:
-            user_id.append(user.id)
-           
+            user_id.append(user.id) 
         random.shuffle(user_id)
-       
-        member = {
-            "type":"user",
-            "id": str(user_id[0]),
-        }
-     
-        self.service.members.add(
-            # the user is not yet owner of the community (is being added)
-            # therefore we cannot use `identity`
-            system_identity,
-            record.id,
-            {"members": [member], "role": current_roles.owner_role.name},
-            uow=self.uow,
-        )
-       
-        # Invalidate the membership cache
+        user_id = [item for item in shuffeld_user if item != converted_int]
+        
+        
+        print("id from user list")
+        print(user_id)   
+        if len(user_id) >= 2:
+            print('it is greater than 3')
+            for i in range(min(3, len(user_id))):
+                member = {
+                "type":"user",
+                "id": str(user_id[i]),
+                }
+            
+                self.service.members.add(
+                    # the user is not yet owner of the community (is being added)
+                    # therefore we cannot use `identity`
+                    system_identity,
+                    record.id,
+                    {"members": [member], "role": current_roles.owner_role.name},
+                    uow=self.uow,
+                 ) 
+              
         on_user_membership_change(identity=identity)
         
         

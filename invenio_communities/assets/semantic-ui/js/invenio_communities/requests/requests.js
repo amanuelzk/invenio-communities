@@ -6,10 +6,10 @@
 
 import { i18next } from "@translations/invenio_communities/i18next";
 import PropTypes from "prop-types";
-import React from "react";
+import React,{useEffect,useState} from "react";
 import { withState } from "react-searchkit";
 import { Input } from "semantic-ui-react";
-
+import {http} from "react-invenio-forms"
 import {
   MobileRequestItem,
   ComputerTabletRequestItem,
@@ -61,14 +61,53 @@ export const RequestsResultsItemTemplateCommunity = ({ result, community }) => {
   const ComputerTabletRequestsItemWithState = withState(ComputerTabletRequestItem);
   const MobileRequestsItemWithState = withState(MobileRequestItem);
   const detailsURL = `/communities/${community.slug}/requests/${result.id}`;
+
+  const [filteredResult, setFilteredResult] = useState(null);
+
+  useEffect(() => {
+    const request = async () => {
+      try {
+        const resp = await http.post(
+          'https://127.0.0.1:5000/api/records/request_num',
+          result,
+          {
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            withCredentials: true,
+          }
+        );
+
+        const account_id = resp.data.owner_id;
+        const statusValues = resp.data.status.length;
+        const exists = resp.data.status.some(item => item.owner_id === account_id || item.owner_Id === account_id);
+
+       
+      
+        if (resp.data.id === result.id && !exists) {
+            setFilteredResult(result);
+            
+          }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+    request();
+  }, [result]); 
+
+  if (filteredResult === null) {
+    return <p></p>;
+  }
+
+ 
   return (
     <>
-      <ComputerTabletRequestsItemWithState result={result} detailsURL={detailsURL} />
-      <MobileRequestsItemWithState result={result} detailsURL={detailsURL} />
+      <ComputerTabletRequestsItemWithState result={filteredResult} detailsURL={detailsURL} />
+      <MobileRequestsItemWithState result={filteredResult} detailsURL={detailsURL} />
     </>
   );
 };
-
 RequestsResultsItemTemplateCommunity.propTypes = {
   result: PropTypes.object.isRequired,
   community: PropTypes.object.isRequired,

@@ -38,7 +38,7 @@ class CommunityMetadata(db.Model, RecordMetadataBase):
         nullable=False,
         default=CommunityDeletionStatusEnum.PUBLISHED.value,
     )
-    community_status = db.Column(db.Boolean(), nullable=False)
+    community_status = db.Column(db.Boolean())
     
     
 
