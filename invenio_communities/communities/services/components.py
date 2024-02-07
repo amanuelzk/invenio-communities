@@ -132,7 +132,7 @@ class OwnershipComponent(ServiceComponent):
         shuffeld_user = []
         account_id= current_user.get_id()
         converted_int = int(account_id)
-        users_with_role = User.query.join(User.roles).filter(Role.id == role_id).all()
+        users_with_role = User.query.join(User.roles).filter(Role.name == role_id).all()
         for user in users_with_role:
             user_id.append(user.id) 
         random.shuffle(user_id)
